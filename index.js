@@ -1,4 +1,4 @@
-import DataProvider from "./dataProvider";
-import AuthProvider from "./authProvider";
+import DataProvider from './dataProvider'
+import AuthProvider from './authProvider'
 
-export { DataProvider, AuthProvider };
+export { DataProvider, AuthProvider }
