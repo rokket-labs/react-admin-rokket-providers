@@ -6,7 +6,8 @@ import { find, propEq } from 'ramda'
 
 export default apiUrl => {
   return {
-    login: async function(resource, params) {
+    login: async function(params) {
+      const resource = 'Login'
       const { queries, client } = await buildClient(apiUrl, resource)
       const foundQuery = find(propEq('name', resource.toLowerCase()))(queries)
 
