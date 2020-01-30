@@ -12,7 +12,7 @@ Install the providers package inside of `/src` folder using the following comman
   command line
 ```
 
-Be sure to install the necessary packages to run the template
+Be sure to install the necessary packages to run your project
 
 ```bash
   yarn install
@@ -20,7 +20,7 @@ Be sure to install the necessary packages to run the template
 
 ## Features
 
-This template includes the following:
+This project includes the following:
 
 - [GraphQl](https://graphql.org/) Query Language
 - [Ramda](https://ramdajs.com/) JavasScript Library
@@ -28,7 +28,7 @@ This template includes the following:
 
 ## How to contribute
 
-If you'd like to contribute to this template, your help is more than welcome! :feelsgood:
+If you'd like to contribute to this project, your help is more than welcome! :feelsgood:
 
 ### Pull requests and Issues
 
