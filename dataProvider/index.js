@@ -27,6 +27,7 @@ export default apiUrl => {
         apiUrl,
         resource,
       )
+
       const foundQuery = find(propEq('name', resource))(queries)
 
       const { id } = params
@@ -38,6 +39,24 @@ export default apiUrl => {
 
       return {
         data: response.data[foundResource.name],
+      }
+    },
+    getMany: async function(resource, params) {
+      const { queries, fields, client } = await buildClient(apiUrl, resource)
+
+      const foundQuery = find(propEq('name', `getMany${pluralize(resource)}`))(
+        queries,
+      )
+
+      const { ids } = params
+      const data = `ids: "${ids}"`
+
+      const query = buildQuery(foundQuery.name, fields, data, '')
+
+      const response = await client.query({ query })
+
+      return {
+        data: response.data[foundQuery.name],
       }
     },
     create: async function(resource, params) {
