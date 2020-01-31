@@ -1,6 +1,7 @@
 /* eslint-disable object-shorthand */
 import decodeJwt from 'jwt-decode'
 import buildClient from '../dataProvider/client'
+import parseSchema from '../dataProvider/schema'
 import buildQuery from '../dataProvider/query'
 import { find, propEq } from 'ramda'
 
@@ -8,7 +9,9 @@ export default apiUrl => {
   return {
     login: async function(params) {
       const resource = 'Login'
-      const { queries, client } = await buildClient(apiUrl, resource)
+      const { client } = await buildClient(apiUrl)
+      const { queries } = await parseSchema(client, resource)
+
       const foundQuery = find(propEq('name', resource.toLowerCase()))(queries)
 
       const mutation = `mutation ${foundQuery.name}($login: ${resource}!) `

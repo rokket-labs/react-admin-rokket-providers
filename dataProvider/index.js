@@ -1,195 +1,65 @@
 /* eslint-disable object-shorthand */
-import buildClient from './client'
-import buildQuery from './query'
+import decodeJwt from 'jwt-decode'
+import buildClient from '../dataProvider/client'
+import parseSchema from '../dataProvider/schema'
+import buildQuery from '../dataProvider/query'
 import { find, propEq } from 'ramda'
-import pluralize from 'pluralize'
 
 export default apiUrl => {
   return {
-    getList: async function(resource, params) {
-      const { queries, fields, client } = await buildClient(apiUrl, resource)
+    login: async function(params) {
+      const resource = 'Login'
+      const { client } = await buildClient(apiUrl)
+      const { queries } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', resource.toLowerCase()))(queries)
 
-      const query = buildQuery(foundQuery.name, fields, null, '')
+      const mutation = `mutation ${foundQuery.name}($login: ${resource}!) `
+      const data = `input: $login`
+      const field = ['accessToken']
 
-      const response = await client.query({ query })
+      const query = buildQuery(foundQuery.name, field, data, mutation)
 
-      return {
-        data: response.data[foundQuery.name],
-        total: response.data[foundQuery.name].length,
+      const loginVariable = {
+        email: params.username,
+        password: params.password,
       }
-    },
-    getOne: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
-
-      const foundQuery = find(propEq('name', resource))(queries)
-
-      const { id } = params
-      const data = `id: "${id}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, '')
-
-      const response = await client.query({ query })
-
-      return {
-        data: response.data[foundResource.name],
-      }
-    },
-    getMany: async function(resource, params) {
-      const { queries, fields, client } = await buildClient(apiUrl, resource)
-
-      const foundQuery = find(propEq('name', `getMany${pluralize(resource)}`))(
-        queries,
-      )
-
-      const { ids } = params
-      const data = `ids: "${ids}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, '')
-
-      const response = await client.query({ query })
-
-      return {
-        data: response.data[foundQuery.name],
-      }
-    },
-    create: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
-
-      const foundQuery = find(propEq('name', `create${foundResource.name}`))(
-        queries,
-      )
-
-      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
-      const data = `input: $input`
-
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: newParams,
+          login: loginVariable,
         },
       })
 
-      return {
-        data: response.data[foundQuery.name],
-      }
+      const responseData = response.data[foundQuery.name]
+      const token = responseData.accessToken
+      localStorage.setItem('accessToken', token)
+
+      return Promise.resolve()
     },
-    update: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
-
-      const foundQuery = find(propEq('name', `update${foundResource.name}`))(
-        queries,
-      )
-
-      const { id } = params
-      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
-      const data = `input: $input, id: "${id}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
-
-      const response = await client.mutate({
-        mutation: query,
-        variables: {
-          input: newParams,
-        },
-      })
-
-      return {
-        data: response.data[foundQuery.name],
-      }
+    logout: async function() {
+      localStorage.removeItem('accessToken')
+      return Promise.resolve()
     },
-    updateMany: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
-      const foundQuery = find(
-        propEq('name', `update${pluralize(foundResource.name)}`),
-      )(queries)
-      const { ids } = params
-      const mutation = `mutation`
-      const data = `input: $input, ids: "${ids}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
-
-      const response = await client.mutate({
-        mutation: query,
-        variables: {
-          input: newParams,
-        },
-      })
-
-      return {
-        data: response.data[foundQuery.name],
+    checkError: async function(params) {
+      if (params.status === 401 || params.status === 403) {
+        localStorage.removeItem('accessToken')
+        return Promise.reject()
       }
+      return Promise.resolve()
     },
-    delete: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
+    checkAuth: async function() {
+      const token = localStorage.getItem('accessToken')
+      const decodedToken = decodeJwt(token)
+      const currentTime = new Date().getTime() / 1000
 
-      const foundQuery = find(propEq('name', `delete${foundResource.name}`))(
-        queries,
-      )
-
-      const { id } = params
-      const mutation = `mutation`
-      const data = `id: "${id}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-
-      const response = await client.mutate({ mutation: query })
-
-      return {
-        data: response.data[foundQuery.name],
-      }
+      return currentTime < decodedToken.exp
+        ? Promise.resolve()
+        : Promise.reject()
     },
-    deleteMany: async function(resource, params) {
-      const { queries, foundResource, fields, client } = await buildClient(
-        apiUrl,
-        resource,
-      )
-      const foundQuery = find(
-        propEq('name', `delete${pluralize(foundResource.name)}`),
-      )(queries)
-      const { ids } = params
-      const mutation = `mutation`
-      const data = `ids: "${ids}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-
-      const response = await client.mutate({ mutation: query })
-
-      return {
-        data: response.data[foundQuery.name],
-      }
+    getPermissions: async function() {
+      Promise.resolve()
     },
   }
 }
