@@ -1,5 +1,7 @@
 ## React Admin Rokket Providers
 
+![npm](https://img.shields.io/npm/v/react-admin-rokket-providers?style=for-the-badge)
+
 _:rocket: Developed by [Rokket Labs](https://rokketlabs.com) :rocket:_
 
 The providers were builded to automatically generate the connection with your GraphQl API in just a couple of minutes.
