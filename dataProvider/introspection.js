@@ -18,6 +18,5 @@ export default schema => {
   return {
     types,
     queries,
-    schema,
   }
 }

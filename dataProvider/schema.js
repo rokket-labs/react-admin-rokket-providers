@@ -12,7 +12,7 @@ const isObject = field => {
   return isObjectRecursive(field.type)
 }
 
-export default async (client, resource) => {
+export default async (client, resource, action) => {
   const query = parse(introspectionQuery)
 
   const schema = await client.query({ query })
@@ -20,6 +20,21 @@ export default async (client, resource) => {
   const { types, queries } = parseIntrospection(schema.data.__schema)
 
   const foundResource = find(propEq('name', resource))(types)
+
+  let inputFieldsName = null
+
+  if (resource === 'User' && action === 'update')
+    inputFieldsName = `${resource}UpdateInput`
+  else inputFieldsName = `${resource}Input`
+
+  const foundInputFields = find(propEq('name', `${inputFieldsName}`))(types)
+
+  let inputFields = []
+
+  if (foundInputFields)
+    inputFields = foundInputFields.inputFields
+      .map(field => inputFields.concat(field.name))
+      .flat()
 
   let fields = null
 
@@ -34,5 +49,6 @@ export default async (client, resource) => {
     queries,
     fields,
     foundResource,
+    inputFields,
   }
 }
