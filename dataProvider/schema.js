@@ -12,6 +12,37 @@ const isObject = field => {
   return isObjectRecursive(field.type)
 }
 
+const getSubFields = (field, types) => {
+  let subArr = null
+
+  const findSubfield = find(
+    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
+  )(types)
+
+  if (findSubfield)
+    subArr = pipe(
+      reject(isObject),
+      map(field => field.name),
+    )(findSubfield.fields)
+
+  return subArr
+}
+
+const getFields = (fields, types) => {
+  const fieldsArr = fields.map(field => {
+    const { name } = field
+    const filter = 'orders'
+    if (filter !== name) {
+      const subfields = getSubFields(name, types)
+      const structure = `${name}` + `{${subfields}}`
+      if (subfields) return structure
+      else return name
+    }
+  })
+
+  return fieldsArr
+}
+
 export default async (client, resource, action) => {
   const query = parse(introspectionQuery)
 
@@ -21,13 +52,13 @@ export default async (client, resource, action) => {
 
   const foundResource = find(propEq('name', resource))(types)
 
-  let inputFieldsName = null
+  let inputName = null
 
   if (resource === 'User' && action === 'update')
-    inputFieldsName = `${resource}UpdateInput`
-  else inputFieldsName = `${resource}Input`
+    inputName = `${resource}UpdateInput`
+  else inputName = `${resource}Input`
 
-  const foundInputFields = find(propEq('name', `${inputFieldsName}`))(types)
+  const foundInputFields = find(propEq('name', `${inputName}`))(types)
 
   let inputFields = []
 
@@ -38,11 +69,7 @@ export default async (client, resource, action) => {
 
   let fields = null
 
-  if (foundResource.fields)
-    fields = pipe(
-      reject(isObject),
-      map(field => field.name),
-    )(foundResource.fields)
+  if (foundResource.fields) fields = getFields(foundResource.fields, types)
 
   return {
     types,

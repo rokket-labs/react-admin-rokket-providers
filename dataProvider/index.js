@@ -14,7 +14,6 @@ export default apiUrl => {
       const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
         queries,
       )
-
       const query = buildQuery(foundQuery.name, fields, null, '')
 
       const response = await client.query({ query })
@@ -48,19 +47,17 @@ export default apiUrl => {
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `getMany${pluralize(resource)}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `${resource}`))(queries)
 
       const { ids } = params
-      const data = `ids: "${ids}"`
+      const data = `id: "${ids}"`
 
       const query = buildQuery(foundQuery.name, fields, data, '')
 
       const response = await client.query({ query })
 
       return {
-        data: response.data[foundQuery.name],
+        data: [response.data[foundQuery.name]],
       }
     },
     create: async function(resource, params) {
@@ -81,6 +78,7 @@ export default apiUrl => {
       const query = buildQuery(foundQuery.name, fields, data, mutation)
 
       const newParams = { ...params.data }
+
       const response = await client.mutate({
         mutation: query,
         variables: {
