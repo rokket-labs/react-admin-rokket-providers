@@ -32,12 +32,13 @@ const getFields = (fields, types) => {
   const fieldsArr = fields.map(field => {
     const { name } = field
     const filter = 'orders'
+    let subfieldsList = null
     if (filter !== name) {
       const subfields = getSubFields(name, types)
-      const structure = `${name}` + `{${subfields}}`
-      if (subfields) return structure
-      else return name
+      const structure = `${name}` + ` {${subfields}}`
+      return subfields ? (subfieldsList = structure) : (subfieldsList = name)
     }
+    return subfieldsList
   })
 
   return fieldsArr
@@ -63,9 +64,7 @@ export default async (client, resource, action) => {
   let inputFields = []
 
   if (foundInputFields)
-    inputFields = foundInputFields.inputFields
-      .map(field => inputFields.concat(field.name))
-      .flat()
+    inputFields = getFields(foundInputFields.inputFields, types)
 
   let fields = null
 
