@@ -12,7 +12,7 @@ const isObject = field => {
   return isObjectRecursive(field.type)
 }
 
-const getSubfields = (field, types) => {
+const getSubFields = (field, types) => {
   let subArr = null
 
   const findSubfield = find(
@@ -29,18 +29,18 @@ const getSubfields = (field, types) => {
 }
 
 const getFields = (fields, types) => {
-  const fieldObj = []
-  Object.entries(fields).map(field => {
-    const { name } = field[1]
+  const fieldsArr = fields.map(field => {
+    const { name } = field
+    let subfieldsList = null
     if (name !== 'orders') {
-      const subfields = getSubfields(name, types)
-      const value = subfields
-        ? (fieldObj[name] = subfields)
-        : fieldObj.push(name)
-      return value
+      const subfields = getSubFields(name, types)
+      const structure = `${name}` + ` {${subfields}}`
+      return subfields ? (subfieldsList = structure) : (subfieldsList = name)
     }
+    return subfieldsList
   })
-  return fieldObj
+
+  return fieldsArr
 }
 
 export default async (client, resource, action) => {
