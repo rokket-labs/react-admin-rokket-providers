@@ -125,7 +125,7 @@ export default apiUrl => {
       delete objTest.id
       delete objTest.__typename
       delete objTest.roles
-      console.log(objTest)
+
       const response = await client.mutate({
         mutation: query,
         variables: {
