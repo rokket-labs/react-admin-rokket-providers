@@ -2,7 +2,7 @@
 import buildClient from '../dataProvider/client'
 import parseSchema from '../dataProvider/schema'
 import buildQuery from '../dataProvider/query'
-import { find, propEq, dissoc } from 'ramda'
+import { find, propEq } from 'ramda'
 import pluralize from 'pluralize'
 
 export default apiUrl => {
@@ -116,11 +116,12 @@ export default apiUrl => {
 
       const objTest = {}
 
-      const paramList = Object.entries(params.data).map(item => {
+      Object.entries(params.data).map(item => {
         const name = item[0]
         const value = item[1].id ? item[1].id : item[1]
         return (objTest[name] = value)
       })
+
       delete objTest.id
       delete objTest.__typename
       delete objTest.roles
