@@ -114,22 +114,22 @@ export default apiUrl => {
 
       const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
-      const objTest = {}
+      const objInput = {}
 
       Object.entries(params.data).map(item => {
         const name = item[0]
         const value = item[1].id ? item[1].id : item[1]
-        return (objTest[name] = value)
+        return (objInput[name] = value)
       })
 
-      delete objTest.id
-      delete objTest.__typename
-      delete objTest.roles
+      delete objInput.id
+      delete objInput.__typename
+      delete objInput.roles
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: objTest,
+          input: objInput,
         },
       })
 
