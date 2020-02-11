@@ -12,12 +12,18 @@ const isObject = field => {
   return isObjectRecursive(field.type)
 }
 
+const findType = (field, types) => {
+  const findTypes = find(
+    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
+  )(types)
+
+  return findTypes
+}
+
 const getSubFields = (field, types) => {
   let subArr = null
 
-  const findSubfield = find(
-    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
-  )(types)
+  const findSubfield = findType(field, types)
 
   if (findSubfield)
     subArr = pipe(
@@ -32,11 +38,14 @@ const getFields = (fields, types) => {
   const fieldsArr = fields.map(field => {
     const { name } = field
     let subfieldsList = null
+    let subfields = null
     if (name !== 'orders') {
-      const subfields = getSubFields(name, types)
-      const structure = `${name}` + ` {${subfields}}`
-      return subfields ? (subfieldsList = structure) : (subfieldsList = name)
+      if (name !== 'status') subfields = getSubFields(name, types)
+      subfields
+        ? (subfieldsList = `${name}` + ` {${subfields}}`)
+        : (subfieldsList = name)
     }
+
     return subfieldsList
   })
 
