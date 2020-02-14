@@ -13,6 +13,7 @@ const isObject = field => {
 }
 
 const findType = (field, types) => {
+  if (field === 'image') field = 'file'
   const findTypes = find(
     propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
   )(types)
