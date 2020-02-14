@@ -20,7 +20,7 @@ const findType = (field, types) => {
   return findTypes
 }
 
-const getSubFields = (field, types) => {
+const getSubfields = (field, types) => {
   let subArr = null
 
   const findSubfield = findType(field, types)
@@ -35,21 +35,22 @@ const getSubFields = (field, types) => {
 }
 
 const getFields = (fields, types) => {
-  const fieldsArr = fields.map(field => {
-    const { name } = field
-    let subfieldsList = null
+  const fieldObj = []
+  Object.entries(fields).map(field => {
+    const { name } = field[1]
     let subfields = null
-    if (name !== 'orders') {
-      if (name !== 'status') subfields = getSubFields(name, types)
-      subfields
-        ? (subfieldsList = `${name}` + ` {${subfields}}`)
-        : (subfieldsList = name)
+    let value = null
+    if (
+      name !== 'orders' &&
+      name !== 'productList' &&
+      name !== 'transactionId'
+    ) {
+      if (name !== 'status') subfields = getSubfields(name, types)
+      value = subfields ? (fieldObj[name] = subfields) : (fieldObj[name] = null)
     }
-
-    return subfieldsList
+    return value
   })
-
-  return fieldsArr
+  return fieldObj
 }
 
 export default async (client, resource, action) => {
