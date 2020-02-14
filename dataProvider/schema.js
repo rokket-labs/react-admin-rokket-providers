@@ -12,12 +12,19 @@ const isObject = field => {
   return isObjectRecursive(field.type)
 }
 
-const getSubFields = (field, types) => {
-  let subArr = null
-
-  const findSubfield = find(
+const findType = (field, types) => {
+  if (field === 'image') field = 'file'
+  const findTypes = find(
     propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
   )(types)
+
+  return findTypes
+}
+
+const getSubfields = (field, types) => {
+  let subArr = null
+
+  const findSubfield = findType(field, types)
 
   if (findSubfield)
     subArr = pipe(
@@ -29,18 +36,22 @@ const getSubFields = (field, types) => {
 }
 
 const getFields = (fields, types) => {
-  const fieldsArr = fields.map(field => {
-    const { name } = field
-    let subfieldsList = null
-    if (name !== 'orders') {
-      const subfields = getSubFields(name, types)
-      const structure = `${name}` + ` {${subfields}}`
-      return subfields ? (subfieldsList = structure) : (subfieldsList = name)
+  const fieldObj = []
+  Object.entries(fields).map(field => {
+    const { name } = field[1]
+    let subfields = null
+    let value = null
+    if (
+      name !== 'orders' &&
+      name !== 'productList' &&
+      name !== 'transactionId'
+    ) {
+      if (name !== 'status') subfields = getSubfields(name, types)
+      value = subfields ? (fieldObj[name] = subfields) : (fieldObj[name] = null)
     }
-    return subfieldsList
+    return value
   })
-
-  return fieldsArr
+  return fieldObj
 }
 
 export default async (client, resource, action) => {

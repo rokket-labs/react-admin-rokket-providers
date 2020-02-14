@@ -106,7 +106,8 @@ export default apiUrl => {
       const { id } = params
 
       let inputName = null
-      if (resource === 'User') inputName = `${resource}UpdateInput!`
+      if (resource === 'User' || resource === 'VendingMachine')
+        inputName = `${resource}UpdateInput!`
       else inputName = `${resource}Input!`
 
       const mutation = `mutation ${foundQuery.name}($input: ${inputName})`
@@ -118,13 +119,16 @@ export default apiUrl => {
 
       Object.entries(params.data).map(item => {
         const name = item[0]
-        const value = item[1].id ? item[1].id : item[1]
-        return (objInput[name] = value)
+        let value
+        Object.keys(inputFields).map(filter => {
+          if (name === filter)
+            typeof item[1] === 'object'
+              ? (value = item[1].id)
+              : (value = item[1])
+          return (objInput[name] = value)
+        })
+        return objInput
       })
-
-      delete objInput.id
-      delete objInput.__typename
-      delete objInput.roles
 
       const response = await client.mutate({
         mutation: query,
