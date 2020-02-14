@@ -7,14 +7,13 @@ import pluralize from 'pluralize'
 
 export default apiUrl => {
   return {
-    getList: async function(resource, params) {
+    getList: async function(resource) {
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource)
 
       const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
         queries,
       )
-
       const query = buildQuery(foundQuery.name, fields, null, '')
 
       const response = await client.query({ query })
@@ -48,19 +47,17 @@ export default apiUrl => {
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `getMany${pluralize(resource)}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `${resource}`))(queries)
 
       const { ids } = params
-      const data = `ids: "${ids}"`
+      const data = `id: "${ids}"`
 
       const query = buildQuery(foundQuery.name, fields, data, '')
 
       const response = await client.query({ query })
 
       return {
-        data: response.data[foundQuery.name],
+        data: [response.data[foundQuery.name]],
       }
     },
     create: async function(resource, params) {
@@ -70,9 +67,10 @@ export default apiUrl => {
         resource,
       )
 
-      const foundQuery = find(propEq('name', `create${foundResource.name}`))(
-        queries,
-      )
+      let queryName = null
+      if (resource === 'User') queryName = `signUp`
+      else queryName = `create${foundResource.name}`
+      const foundQuery = find(propEq('name', `${queryName}`))(queries)
 
       const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
       const data = `input: $input`
@@ -80,8 +78,6 @@ export default apiUrl => {
       const query = buildQuery(foundQuery.name, fields, data, mutation)
 
       const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
 
       const response = await client.mutate({
         mutation: query,
@@ -95,10 +91,12 @@ export default apiUrl => {
       }
     },
     update: async function(resource, params) {
+      const action = 'update'
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
+      const { queries, foundResource, inputFields } = await parseSchema(
         client,
         resource,
+        action,
       )
 
       const foundQuery = find(propEq('name', `update${foundResource.name}`))(
@@ -106,19 +104,32 @@ export default apiUrl => {
       )
 
       const { id } = params
-      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
+
+      let inputName = null
+      if (resource === 'User') inputName = `${resource}UpdateInput!`
+      else inputName = `${resource}Input!`
+
+      const mutation = `mutation ${foundQuery.name}($input: ${inputName})`
       const data = `input: $input, id: "${id}"`
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
+      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
+      const objInput = {}
+
+      Object.entries(params.data).map(item => {
+        const name = item[0]
+        const value = item[1].id ? item[1].id : item[1]
+        return (objInput[name] = value)
+      })
+
+      delete objInput.id
+      delete objInput.__typename
+      delete objInput.roles
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: newParams,
+          input: objInput,
         },
       })
 

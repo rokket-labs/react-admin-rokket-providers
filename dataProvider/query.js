@@ -1,9 +1,9 @@
 import gql from 'graphql-tag'
 
-export default (name, fields, params, mutation) => {
-  const paramString = params ? `(${params})` : ''
+export default (name, fields, data, mutation) => {
+  const variableString = data ? `(${data})` : ''
   const queryString = `
-    ${name}${paramString} {
+    ${name}${variableString} {
       ${fields.join('\n')}
     } 
   `
