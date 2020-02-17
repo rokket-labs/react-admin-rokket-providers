@@ -63,22 +63,23 @@ export default async (client, resource, action) => {
 
   const foundResource = find(propEq('name', resource))(types)
 
+  let fields = null
+
+  if (foundResource.fields) fields = getFields(foundResource.fields, types)
+
   let inputName = null
 
   if (resource === 'User' && action === 'update')
     inputName = `${resource}UpdateInput`
+  else if (resource === 'File') inputName = `Upload`
   else inputName = `${resource}Input`
 
   const foundInputFields = find(propEq('name', `${inputName}`))(types)
 
   let inputFields = []
 
-  if (foundInputFields)
+  if (foundInputFields && resource !== 'File')
     inputFields = getFields(foundInputFields.inputFields, types)
-
-  let fields = null
-
-  if (foundResource.fields) fields = getFields(foundResource.fields, types)
 
   return {
     types,
