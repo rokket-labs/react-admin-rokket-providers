@@ -45,14 +45,26 @@ const requestLink = new ApolloLink(
     }),
 )
 
+const defaultOptions = {
+  watchQuery: {
+    fetchPolicy: 'no-cache',
+    errorPolicy: 'ignore',
+  },
+  query: {
+    fetchPolicy: 'no-cache',
+    errorPolicy: 'all',
+  },
+}
+
 const buildClient = uri =>
   new ApolloClient({
-    cache,
     link: ApolloLink.from([
       errorLink,
       requestLink,
       new createUploadLink({ uri }),
     ]),
+    cache,
+    defaultOptions,
   })
 
 export default async apiUrl => {

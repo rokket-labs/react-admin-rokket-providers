@@ -70,25 +70,20 @@ export default apiUrl => {
       let queryName = null
 
       if (resource === 'User') queryName = `signUp`
-      else if (resource === 'File') queryName = `upload${resource}`
       else queryName = `create${foundResource.name}`
 
       const foundQuery = find(propEq('name', `${queryName}`))(queries)
 
-      let mutation = null
-
-      if (resource === 'File')
-        mutation = `mutation ${foundQuery.name}($input: Upload!) `
-      else mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
+      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!)`
 
       const data = `input: $input`
 
       const query = buildQuery(foundQuery.name, fields, data, mutation)
-
+      console.log(fields)
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: resource === 'File' ? params : params.data,
+          input: params.data,
         },
       })
 
@@ -123,7 +118,7 @@ export default apiUrl => {
       const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
       const objInput = {}
-
+      console.log(inputFields)
       Object.entries(params.data).map(item => {
         const name = item[0]
         let value
@@ -136,7 +131,7 @@ export default apiUrl => {
         })
         return objInput
       })
-
+      console.log(objInput)
       const response = await client.mutate({
         mutation: query,
         variables: {
