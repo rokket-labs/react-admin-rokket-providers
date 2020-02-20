@@ -69,7 +69,7 @@ export default apiUrl => {
     },
     create: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, inputFields } = await parseSchema(
+      const { queries, foundResource, fields, inputFields } = await parseSchema(
         client,
         resource,
       )
@@ -88,7 +88,7 @@ export default apiUrl => {
       inputFields.id = null
       if (resource === 'Formula') params.data.image = params.data.image.url
 
-      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
+      const query = buildQuery(foundQuery.name, fields, data, mutation)
 
       const response = await client.mutate({
         mutation: query,

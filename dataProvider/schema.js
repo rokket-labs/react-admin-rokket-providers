@@ -74,7 +74,6 @@ export default async (client, resource, action) => {
 
   if (resource === 'User' && action === 'update')
     inputName = `${resource}UpdateInput`
-  else if (resource === 'File') inputName = `Upload`
   else inputName = `${resource}Input`
 
   const foundInputFields = find(propEq('name', `${inputName}`))(types)
