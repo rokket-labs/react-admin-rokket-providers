@@ -2,6 +2,14 @@ import { introspectionQuery, parse } from 'graphql'
 import parseIntrospection from './introspection'
 import { find, pipe, propEq, map, isNil, reject } from 'ramda'
 
+const findType = (field, types) => {
+  const findTypes = find(
+    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
+  )(types)
+
+  return findTypes
+}
+
 const isObjectRecursive = type => {
   if (isNil(type.ofType)) return type.kind === 'OBJECT'
 
@@ -10,15 +18,6 @@ const isObjectRecursive = type => {
 
 const isObject = field => {
   return isObjectRecursive(field.type)
-}
-
-const findType = (field, types) => {
-  if (field === 'image') field = 'file'
-  const findTypes = find(
-    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
-  )(types)
-
-  return findTypes
 }
 
 const getSubfields = (field, types) => {
@@ -39,6 +38,9 @@ const getFields = (fields, types) => {
   const fieldObj = []
   Object.entries(fields).map(field => {
     const { name } = field[1]
+    const fieldData = findType(name, types)
+    let type = null
+    if (fieldData) type = fieldData.kind
     let subfields = null
     let value = null
     if (
@@ -46,7 +48,8 @@ const getFields = (fields, types) => {
       name !== 'productList' &&
       name !== 'transactionId'
     ) {
-      if (name !== 'status') subfields = getSubfields(name, types)
+      if (type !== 'ENUM' && type !== 'SCALAR')
+        subfields = getSubfields(name, types)
       value = subfields ? (fieldObj[name] = subfields) : (fieldObj[name] = null)
     }
     return value

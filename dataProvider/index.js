@@ -8,12 +8,14 @@ import pluralize from 'pluralize'
 export default apiUrl => {
   return {
     getList: async function(resource) {
+      const action = 'getList'
       const { client } = await buildClient(apiUrl)
-      const { queries, fields } = await parseSchema(client, resource)
+      const { queries, fields } = await parseSchema(client, resource, action)
 
       const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
         queries,
       )
+
       const query = buildQuery(foundQuery.name, fields, null, '')
 
       const response = await client.query({ query })
@@ -39,6 +41,11 @@ export default apiUrl => {
 
       const response = await client.query({ query })
 
+      if (resource === 'Formula')
+        response.data[foundResource.name].image = {
+          url: response.data[foundResource.name].image,
+        }
+
       return {
         data: response.data[foundResource.name],
       }
@@ -62,7 +69,7 @@ export default apiUrl => {
     },
     create: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
+      const { queries, foundResource, inputFields } = await parseSchema(
         client,
         resource,
       )
@@ -78,8 +85,11 @@ export default apiUrl => {
 
       const data = `input: $input`
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-      console.log(fields)
+      inputFields.id = null
+      if (resource === 'Formula') params.data.image = params.data.image.url
+
+      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
+
       const response = await client.mutate({
         mutation: query,
         variables: {
@@ -118,7 +128,7 @@ export default apiUrl => {
       const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
       const objInput = {}
-      console.log(inputFields)
+
       Object.entries(params.data).map(item => {
         const name = item[0]
         let value
@@ -131,7 +141,9 @@ export default apiUrl => {
         })
         return objInput
       })
-      console.log(objInput)
+
+      if (resource === 'Formula') objInput.image = params.data.image.url
+
       const response = await client.mutate({
         mutation: query,
         variables: {
