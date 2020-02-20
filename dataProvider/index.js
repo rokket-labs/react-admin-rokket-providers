@@ -85,8 +85,7 @@ export default apiUrl => {
 
       const data = `input: $input`
 
-      inputFields.id = null
-      if (resource === 'Formula') params.data.image = params.data.image.url
+      if (params.data.image) params.data.image = params.data.image.url
 
       const query = buildQuery(foundQuery.name, fields, data, mutation)
 
@@ -142,7 +141,7 @@ export default apiUrl => {
         return objInput
       })
 
-      if (resource === 'Formula') objInput.image = params.data.image.url
+      if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
         mutation: query,
@@ -157,7 +156,7 @@ export default apiUrl => {
     },
     updateMany: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
+      const { queries, foundResource, inputFields } = await parseSchema(
         client,
         resource,
       )
@@ -167,19 +166,38 @@ export default apiUrl => {
       )(queries)
 
       const { ids } = params
-      const mutation = `mutation`
+      let inputName = null
+
+      if (resource === 'User' || resource === 'VendingMachine')
+        inputName = `${resource}UpdateInput!`
+      else inputName = `${resource}Input!`
+
+      const mutation = `mutation ${foundQuery.name}($input: ${inputName})`
       const data = `input: $input, ids: "${ids}"`
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
+      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
+      const objInput = {}
+
+      Object.entries(params.data).map(item => {
+        const name = item[0]
+        let value
+        Object.keys(inputFields).map(filter => {
+          if (name === filter)
+            typeof item[1] === 'object'
+              ? (value = item[1].id)
+              : (value = item[1])
+          return (objInput[name] = value)
+        })
+        return objInput
+      })
+
+      if (resource === 'Formula') objInput.image = params.data.image.url
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: newParams,
+          input: objInput,
         },
       })
 
