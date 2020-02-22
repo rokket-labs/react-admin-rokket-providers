@@ -69,7 +69,7 @@ export default apiUrl => {
     },
     create: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields, inputFields } = await parseSchema(
+      const { queries, foundResource, fields } = await parseSchema(
         client,
         resource,
       )
