@@ -17,7 +17,7 @@ export default apiUrl => {
       )
 
       const query = buildQuery(foundQuery.name, fields, null, '')
-
+      console.log(query)
       const response = await client.query({ query })
 
       return {
@@ -27,10 +27,7 @@ export default apiUrl => {
     },
     getOne: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
       const foundQuery = find(propEq('name', resource))(queries)
 
@@ -38,16 +35,16 @@ export default apiUrl => {
       const data = `id: "${id}"`
 
       const query = buildQuery(foundQuery.name, fields, data, '')
-
+      console.log('gOQUERY', query)
       const response = await client.query({ query })
 
       if (resource === 'Formula')
-        response.data[foundResource.name].image = {
-          url: response.data[foundResource.name].image,
+        response.data[resource].image = {
+          url: response.data[resource].image,
         }
-
+      console.log('getOne', response)
       return {
-        data: response.data[foundResource.name],
+        data: response.data[resource],
       }
     },
     getMany: async function(resource, params) {
@@ -60,24 +57,22 @@ export default apiUrl => {
       const data = `id: "${ids}"`
 
       const query = buildQuery(foundQuery.name, fields, data, '')
-
+      console.log('query gM', query)
+      console.log(params)
       const response = await client.query({ query })
-
+      console.log('getMany', response)
       return {
         data: [response.data[foundQuery.name]],
       }
     },
     create: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
       let queryName = null
 
       if (resource === 'User') queryName = `signUp`
-      else queryName = `create${foundResource.name}`
+      else queryName = `create${resource}`
 
       const foundQuery = find(propEq('name', `${queryName}`))(queries)
 
@@ -88,6 +83,9 @@ export default apiUrl => {
       if (params.data.image) params.data.image = params.data.image.url
 
       const query = buildQuery(foundQuery.name, fields, data, mutation)
+      console.log('fields', fields)
+      console.log('query', query)
+      console.log('params', params.data)
 
       const response = await client.mutate({
         mutation: query,
@@ -95,7 +93,7 @@ export default apiUrl => {
           input: params.data,
         },
       })
-
+      console.log('response', response)
       return {
         data: response.data[foundQuery.name],
       }
@@ -103,15 +101,13 @@ export default apiUrl => {
     update: async function(resource, params) {
       const action = 'update'
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, inputFields } = await parseSchema(
+      const { queries, inputFields } = await parseSchema(
         client,
         resource,
         action,
       )
 
-      const foundQuery = find(propEq('name', `update${foundResource.name}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `update${resource}`))(queries)
 
       const { id } = params
 
@@ -212,9 +208,7 @@ export default apiUrl => {
         resource,
       )
 
-      const foundQuery = find(propEq('name', `delete${foundResource.name}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `delete${resource}`))(queries)
 
       const { id } = params
       const mutation = `mutation`

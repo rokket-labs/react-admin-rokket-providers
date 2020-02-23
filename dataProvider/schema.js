@@ -28,39 +28,32 @@ const hasIt = (values, value) => {
 }
 
 const getFieldsRecursive = (types, resource, existingTypos = []) => {
-  // 1ro - Buscamos si es Typo
   const getData = getFieldData(resource, types)
   let values = [...existingTypos]
   let result = [{ val: null }, values]
-  // 2do En caso de ser Typo y por ende tener fields
+
   if (getData && getData.fields) {
-    // 2.1 Lo recorremos
-    let newField = { val: null }
-    values = !values.includes(resource)
-      ? [...values, singCap(resource)]
-      : values
+    values = !values.includes(resource) ? [...values, resource] : values
     getData.fields.forEach(f => {
-      // 2.2 repetimos con nietos en caso de no ser un Typo existente
-      // vamos a buscar al hijo
-      if (!hasIt(existingTypos, singCap(f.name))) {
-        const sub = getFieldsRecursive(types, f.name, values)
-        newField
-        // if (sub[0].val) {
-        result[0].val = {
-          ...result[0].val,
-          [f.name]: sub[0].val,
-        }
-        result[1] = sub[1]
+      if (
+        f.name !== 'productList' &&
+        f.name !== 'orders' &&
+        f.name !== 'contents'
+      )
+        if (!hasIt(existingTypos, f.name)) {
+          const sub = getFieldsRecursive(types, f.name, values)
 
-        // 2.3 Si ya existe el typo devolvemos null
-      } else
-        result[0].val = {
-          ...result[0].val,
-          [f.name]: null,
-        }
+          result[0].val = {
+            ...result[0].val,
+            [f.name]: sub[0].val,
+          }
+          result[1] = sub[1]
+        } else
+          result[0].val = {
+            ...result[0].val,
+            [f.name]: null,
+          }
     })
-
-    // 3ro Si no es Typo devolvemos null, para ser agregado junto a la key
   } else return [{ val: null }, values]
 
   return result
@@ -76,28 +69,27 @@ export default async (client, resource, action) => {
   const schema = await client.query({ query })
 
   const { types, queries } = parseIntrospection(schema.data.__schema)
-
+  console.log(types)
   let fields = []
 
-  fields = getFields(types, resource)[0].val
-  console.log('final result', fields)
+  fields = getFields(types, resource, action)[0].val
 
-  // let inputName = null
+  let inputName = null
 
-  // if (resource === 'User' && action === 'update')
-  //   inputName = `${resource}UpdateInput`
-  // else inputName = `${resource}Input`
+  if (resource === 'User' && action === 'update')
+    inputName = `${resource}UpdateInput`
+  else inputName = `${resource}Input`
 
-  // const foundInputFields = find(propEq('name', `${inputName}`))(types)
+  let inputFields = []
 
-  // let inputFields = []
+  if (resource !== 'File')
+    inputFields = getFields(types, inputName, action)[0].val
 
-  // if (foundInputFields && resource !== 'File')
-  //   inputFields = getFields(foundInputFields.inputFields, types, resource)
+  console.log(fields)
   return {
     types,
     queries,
     fields,
-    // inputFields,
+    inputFields,
   }
 }
