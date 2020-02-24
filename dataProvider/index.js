@@ -8,12 +8,14 @@ import pluralize from 'pluralize'
 export default apiUrl => {
   return {
     getList: async function(resource) {
+      const action = 'getList'
       const { client } = await buildClient(apiUrl)
-      const { queries, fields } = await parseSchema(client, resource)
+      const { queries, fields } = await parseSchema(client, resource, action)
 
       const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
         queries,
       )
+
       const query = buildQuery(foundQuery.name, fields, null, '')
 
       const response = await client.query({ query })
@@ -25,10 +27,7 @@ export default apiUrl => {
     },
     getOne: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
       const foundQuery = find(propEq('name', resource))(queries)
 
@@ -39,20 +38,24 @@ export default apiUrl => {
 
       const response = await client.query({ query })
 
+      if (resource === 'Formula')
+        response.data[resource].image = {
+          url: response.data[resource].image,
+        }
+
       return {
-        data: response.data[foundResource.name],
+        data: response.data[resource],
       }
     },
     getMany: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `${resource}`))(queries)
+      const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
+        queries,
+      )
 
-      const { ids } = params
-      const data = `id: "${ids}"`
-
-      const query = buildQuery(foundQuery.name, fields, data, '')
+      const query = buildQuery(foundQuery.name, fields, null, '')
 
       const response = await client.query({ query })
 
@@ -61,28 +64,29 @@ export default apiUrl => {
       }
     },
     create: async function(resource, params) {
+      const action = 'create'
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource, action)
 
       let queryName = null
+
       if (resource === 'User') queryName = `signUp`
-      else queryName = `create${foundResource.name}`
+      else queryName = `create${resource}`
+
       const foundQuery = find(propEq('name', `${queryName}`))(queries)
 
-      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!) `
+      const mutation = `mutation ${foundQuery.name}($input: ${resource}Input!)`
+
       const data = `input: $input`
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
+      if (params.data.image) params.data.image = params.data.image.url
 
-      const newParams = { ...params.data }
+      const query = buildQuery(foundQuery.name, fields, data, mutation)
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: newParams,
+          input: params.data,
         },
       })
 
@@ -93,19 +97,18 @@ export default apiUrl => {
     update: async function(resource, params) {
       const action = 'update'
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, inputFields } = await parseSchema(
+      const { queries, inputFields } = await parseSchema(
         client,
         resource,
         action,
       )
 
-      const foundQuery = find(propEq('name', `update${foundResource.name}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `update${resource}`))(queries)
 
       const { id } = params
 
       let inputName = null
+
       if (resource === 'User' || resource === 'VendingMachine')
         inputName = `${resource}UpdateInput!`
       else inputName = `${resource}Input!`
@@ -119,16 +122,27 @@ export default apiUrl => {
 
       Object.entries(params.data).map(item => {
         const name = item[0]
-        let value
+        const value = item[1]
+        let data
+
         Object.keys(inputFields).map(filter => {
           if (name === filter)
-            typeof item[1] === 'object'
-              ? (value = item[1].id)
-              : (value = item[1])
-          return (objInput[name] = value)
+            if (value && value.id) data = item[1].id
+            else data = item[1]
+
+          if (data && name === 'contentFormula')
+            Object.values(data).forEach(cf => {
+              if (cf.content && cf.content.id) cf.content = cf.content.id
+              delete cf.__typename
+              return cf
+            })
+
+          return (objInput[name] = data)
         })
         return objInput
       })
+
+      if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
         mutation: query,
@@ -143,7 +157,7 @@ export default apiUrl => {
     },
     updateMany: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
+      const { queries, foundResource, inputFields } = await parseSchema(
         client,
         resource,
       )
@@ -153,19 +167,46 @@ export default apiUrl => {
       )(queries)
 
       const { ids } = params
-      const mutation = `mutation`
+      let inputName = null
+
+      if (resource === 'User' || resource === 'VendingMachine')
+        inputName = `${resource}UpdateInput!`
+      else inputName = `${resource}Input!`
+
+      const mutation = `mutation ${foundQuery.name}($input: ${inputName})`
       const data = `input: $input, ids: "${ids}"`
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
+      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
-      const newParams = { ...params.data }
-      delete newParams.id
-      delete newParams.__typename
+      const objInput = {}
+
+      Object.entries(params.data).map(item => {
+        const name = item[0]
+        const value = item[1]
+        let data
+
+        Object.keys(inputFields).map(filter => {
+          if (name === filter)
+            if (value && value.id) data = item[1].id
+            else data = item[1]
+
+          if (data && name === 'contentFormula')
+            Object.values(data).forEach(cf => {
+              if (cf.content && cf.content.id) cf.content = cf.content.id
+              delete cf.__typename
+            })
+
+          return (objInput[name] = data)
+        })
+        return objInput
+      })
+
+      if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
         mutation: query,
         variables: {
-          input: newParams,
+          input: objInput,
         },
       })
 
@@ -175,14 +216,9 @@ export default apiUrl => {
     },
     delete: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `delete${foundResource.name}`))(
-        queries,
-      )
+      const foundQuery = find(propEq('name', `delete${resource}`))(queries)
 
       const { id } = params
       const mutation = `mutation`
@@ -198,14 +234,11 @@ export default apiUrl => {
     },
     deleteMany: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(
-        propEq('name', `delete${pluralize(foundResource.name)}`),
-      )(queries)
+      const foundQuery = find(propEq('name', `delete${pluralize(resource)}`))(
+        queries,
+      )
 
       const { ids } = params
       const mutation = `mutation`

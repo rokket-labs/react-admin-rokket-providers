@@ -1,57 +1,85 @@
 import { introspectionQuery, parse } from 'graphql'
 import parseIntrospection from './introspection'
-import { find, pipe, propEq, map, isNil, reject } from 'ramda'
+import { find, propEq } from 'ramda'
+import pluralize from 'pluralize'
 
-const isObjectRecursive = type => {
-  if (isNil(type.ofType)) return type.kind === 'OBJECT'
+const getFieldData = (field, types) => {
+  const singField = pluralize.singular(field)
 
-  return isObjectRecursive(type.ofType)
-}
-
-const isObject = field => {
-  return isObjectRecursive(field.type)
-}
-
-const findType = (field, types) => {
-  if (field === 'image') field = 'file'
-  const findTypes = find(
-    propEq('name', field.charAt(0).toUpperCase() + field.slice(1)),
+  const fieldData = find(
+    propEq('name', singField.charAt(0).toUpperCase() + singField.slice(1)),
   )(types)
 
-  return findTypes
+  return fieldData
 }
 
-const getSubfields = (field, types) => {
-  let subArr = null
-
-  const findSubfield = findType(field, types)
-
-  if (findSubfield)
-    subArr = pipe(
-      reject(isObject),
-      map(field => field.name),
-    )(findSubfield.fields)
-
-  return subArr
-}
-
-const getFields = (fields, types) => {
-  const fieldObj = []
-  Object.entries(fields).map(field => {
-    const { name } = field[1]
-    let subfields = null
-    let value = null
-    if (
-      name !== 'orders' &&
-      name !== 'productList' &&
-      name !== 'transactionId'
-    ) {
-      if (name !== 'status') subfields = getSubfields(name, types)
-      value = subfields ? (fieldObj[name] = subfields) : (fieldObj[name] = null)
-    }
-    return value
+const hasIt = (values, value) => {
+  let found = false
+  values.forEach(v => {
+    if (v === value) found = true
   })
-  return fieldObj
+
+  return found
+}
+
+const getFieldsRecursive = (types, resource, action, existingTypos = []) => {
+  const getData = getFieldData(resource, types)
+  let values = [...existingTypos]
+  const result = [{ val: null }, values]
+
+  if (getData && getData.fields) {
+    values = !values.includes(resource) ? [...values, resource] : values
+    getData.fields.forEach(f => {
+      if (
+        f.name !== 'productList' &&
+        f.name !== 'contents' &&
+        f.name !== 'orders'
+      )
+        if (!hasIt(existingTypos, f.name)) {
+          const sub = getFieldsRecursive(types, f.name, values)
+
+          result[0].val = {
+            ...result[0].val,
+            [f.name]: sub[0].val,
+          }
+          result[1] = sub[1]
+        } else
+          result[0].val = {
+            ...result[0].val,
+          }
+    })
+  } else if (getData && getData.inputFields) {
+    if (action === 'update' || action === 'create') {
+      resource.replace('Input', '')
+      resource.replace('UpdateInput', '')
+      values = !values.includes(resource) ? [...values, resource] : values
+      getData.inputFields.forEach(f => {
+        if (
+          f.name !== 'productList' &&
+          f.name !== 'contents' &&
+          f.name !== 'orders'
+        )
+          if (!hasIt(existingTypos, f.name)) {
+            const sub = getFieldsRecursive(types, f.name, values)
+
+            result[0].val = {
+              ...result[0].val,
+              [f.name]: sub[0].val,
+            }
+            result[1] = sub[1]
+          } else
+            result[0].val = {
+              ...result[0].val,
+            }
+      })
+    }
+  } else return [{ val: null }, values]
+
+  return result
+}
+
+const getFields = (types, resource, action) => {
+  return getFieldsRecursive(types, resource, action)
 }
 
 export default async (client, resource, action) => {
@@ -61,7 +89,9 @@ export default async (client, resource, action) => {
 
   const { types, queries } = parseIntrospection(schema.data.__schema)
 
-  const foundResource = find(propEq('name', resource))(types)
+  let fields = []
+
+  fields = getFields(types, resource, action)[0].val
 
   let inputName = null
 
@@ -69,22 +99,15 @@ export default async (client, resource, action) => {
     inputName = `${resource}UpdateInput`
   else inputName = `${resource}Input`
 
-  const foundInputFields = find(propEq('name', `${inputName}`))(types)
-
   let inputFields = []
 
-  if (foundInputFields)
-    inputFields = getFields(foundInputFields.inputFields, types)
-
-  let fields = null
-
-  if (foundResource.fields) fields = getFields(foundResource.fields, types)
+  if (resource !== 'File')
+    inputFields = getFields(types, inputName, action)[0].val
 
   return {
     types,
     queries,
     fields,
-    foundResource,
     inputFields,
   }
 }
