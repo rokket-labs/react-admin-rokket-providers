@@ -13,11 +13,6 @@ const getFieldData = (field, types) => {
   return fieldData
 }
 
-const singCap = val => {
-  const sing = pluralize.singular(val)
-  return sing.charAt(0).toUpperCase() + sing.slice(1)
-}
-
 const hasIt = (values, value) => {
   let found = false
   values.forEach(v => {
@@ -27,18 +22,18 @@ const hasIt = (values, value) => {
   return found
 }
 
-const getFieldsRecursive = (types, resource, existingTypos = []) => {
+const getFieldsRecursive = (types, resource, action, existingTypos = []) => {
   const getData = getFieldData(resource, types)
   let values = [...existingTypos]
-  let result = [{ val: null }, values]
+  const result = [{ val: null }, values]
 
   if (getData && getData.fields) {
     values = !values.includes(resource) ? [...values, resource] : values
     getData.fields.forEach(f => {
       if (
         f.name !== 'productList' &&
-        f.name !== 'orders' &&
-        f.name !== 'contents'
+        f.name !== 'contents' &&
+        f.name !== 'orders'
       )
         if (!hasIt(existingTypos, f.name)) {
           const sub = getFieldsRecursive(types, f.name, values)
@@ -51,16 +46,40 @@ const getFieldsRecursive = (types, resource, existingTypos = []) => {
         } else
           result[0].val = {
             ...result[0].val,
-            [f.name]: null,
           }
     })
+  } else if (getData && getData.inputFields) {
+    if (action === 'update' || action === 'create') {
+      resource.replace('Input', '')
+      resource.replace('UpdateInput', '')
+      values = !values.includes(resource) ? [...values, resource] : values
+      getData.inputFields.forEach(f => {
+        if (
+          f.name !== 'productList' &&
+          f.name !== 'contents' &&
+          f.name !== 'orders'
+        )
+          if (!hasIt(existingTypos, f.name)) {
+            const sub = getFieldsRecursive(types, f.name, values)
+
+            result[0].val = {
+              ...result[0].val,
+              [f.name]: sub[0].val,
+            }
+            result[1] = sub[1]
+          } else
+            result[0].val = {
+              ...result[0].val,
+            }
+      })
+    }
   } else return [{ val: null }, values]
 
   return result
 }
 
-const getFields = (types, resource) => {
-  return getFieldsRecursive(types, resource)
+const getFields = (types, resource, action) => {
+  return getFieldsRecursive(types, resource, action)
 }
 
 export default async (client, resource, action) => {
@@ -69,7 +88,7 @@ export default async (client, resource, action) => {
   const schema = await client.query({ query })
 
   const { types, queries } = parseIntrospection(schema.data.__schema)
-  console.log(types)
+
   let fields = []
 
   fields = getFields(types, resource, action)[0].val
@@ -85,7 +104,6 @@ export default async (client, resource, action) => {
   if (resource !== 'File')
     inputFields = getFields(types, inputName, action)[0].val
 
-  console.log(fields)
   return {
     types,
     queries,

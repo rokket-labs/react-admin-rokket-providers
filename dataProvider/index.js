@@ -17,7 +17,7 @@ export default apiUrl => {
       )
 
       const query = buildQuery(foundQuery.name, fields, null, '')
-      console.log(query)
+
       const response = await client.query({ query })
 
       return {
@@ -35,14 +35,14 @@ export default apiUrl => {
       const data = `id: "${id}"`
 
       const query = buildQuery(foundQuery.name, fields, data, '')
-      console.log('gOQUERY', query)
+
       const response = await client.query({ query })
 
       if (resource === 'Formula')
         response.data[resource].image = {
           url: response.data[resource].image,
         }
-      console.log('getOne', response)
+
       return {
         data: response.data[resource],
       }
@@ -51,23 +51,26 @@ export default apiUrl => {
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(propEq('name', `${resource}`))(queries)
+      const foundQuery = find(propEq('name', `all${pluralize(resource)}`))(
+        queries,
+      )
 
-      const { ids } = params
-      const data = `id: "${ids}"`
+      const query = buildQuery(foundQuery.name, fields, null, '')
 
-      const query = buildQuery(foundQuery.name, fields, data, '')
-      console.log('query gM', query)
-      console.log(params)
       const response = await client.query({ query })
-      console.log('getMany', response)
+
       return {
         data: [response.data[foundQuery.name]],
       }
     },
     create: async function(resource, params) {
+      const action = 'create'
       const { client } = await buildClient(apiUrl)
-      const { queries, fields } = await parseSchema(client, resource)
+      const { queries, inputFields } = await parseSchema(
+        client,
+        resource,
+        action,
+      )
 
       let queryName = null
 
@@ -81,11 +84,10 @@ export default apiUrl => {
       const data = `input: $input`
 
       if (params.data.image) params.data.image = params.data.image.url
+      if (resource === 'User') delete inputFields.password
+      inputFields.id = null
 
-      const query = buildQuery(foundQuery.name, fields, data, mutation)
-      console.log('fields', fields)
-      console.log('query', query)
-      console.log('params', params.data)
+      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
 
       const response = await client.mutate({
         mutation: query,
@@ -93,7 +95,7 @@ export default apiUrl => {
           input: params.data,
         },
       })
-      console.log('response', response)
+
       return {
         data: response.data[foundQuery.name],
       }
@@ -126,13 +128,21 @@ export default apiUrl => {
 
       Object.entries(params.data).map(item => {
         const name = item[0]
-        let value
+        const value = item[1]
+        let data
+
         Object.keys(inputFields).map(filter => {
           if (name === filter)
-            typeof item[1] === 'object'
-              ? (value = item[1].id)
-              : (value = item[1])
-          return (objInput[name] = value)
+            if (value && value.id) data = item[1].id
+            else data = item[1]
+
+          if (data && name === 'contentFormula')
+            Object.values(data).map(cf => {
+              if (cf.content && cf.content.id) cf.content = cf.content.id
+              delete cf.__typename
+            })
+
+          return (objInput[name] = data)
         })
         return objInput
       })
@@ -177,18 +187,26 @@ export default apiUrl => {
 
       Object.entries(params.data).map(item => {
         const name = item[0]
-        let value
+        const value = item[1]
+        let data
+
         Object.keys(inputFields).map(filter => {
           if (name === filter)
-            typeof item[1] === 'object'
-              ? (value = item[1].id)
-              : (value = item[1])
-          return (objInput[name] = value)
+            if (value && value.id) data = item[1].id
+            else data = item[1]
+
+          if (data && name === 'contentFormula')
+            Object.values(data).map(cf => {
+              if (cf.content && cf.content.id) cf.content = cf.content.id
+              delete cf.__typename
+            })
+
+          return (objInput[name] = data)
         })
         return objInput
       })
 
-      if (resource === 'Formula') objInput.image = params.data.image.url
+      if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
         mutation: query,
@@ -203,10 +221,7 @@ export default apiUrl => {
     },
     delete: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
       const foundQuery = find(propEq('name', `delete${resource}`))(queries)
 
@@ -224,14 +239,11 @@ export default apiUrl => {
     },
     deleteMany: async function(resource, params) {
       const { client } = await buildClient(apiUrl)
-      const { queries, foundResource, fields } = await parseSchema(
-        client,
-        resource,
-      )
+      const { queries, fields } = await parseSchema(client, resource)
 
-      const foundQuery = find(
-        propEq('name', `delete${pluralize(foundResource.name)}`),
-      )(queries)
+      const foundQuery = find(propEq('name', `delete${pluralize(resource)}`))(
+        queries,
+      )
 
       const { ids } = params
       const mutation = `mutation`
