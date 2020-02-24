@@ -66,11 +66,7 @@ export default apiUrl => {
     create: async function(resource, params) {
       const action = 'create'
       const { client } = await buildClient(apiUrl)
-      const { queries, inputFields, fields } = await parseSchema(
-        client,
-        resource,
-        action,
-      )
+      const { queries, fields } = await parseSchema(client, resource, action)
 
       let queryName = null
 
@@ -135,9 +131,10 @@ export default apiUrl => {
             else data = item[1]
 
           if (data && name === 'contentFormula')
-            Object.values(data).map(cf => {
+            Object.values(data).forEach(cf => {
               if (cf.content && cf.content.id) cf.content = cf.content.id
               delete cf.__typename
+              return cf
             })
 
           return (objInput[name] = data)
@@ -194,7 +191,7 @@ export default apiUrl => {
             else data = item[1]
 
           if (data && name === 'contentFormula')
-            Object.values(data).map(cf => {
+            Object.values(data).forEach(cf => {
               if (cf.content && cf.content.id) cf.content = cf.content.id
               delete cf.__typename
             })
