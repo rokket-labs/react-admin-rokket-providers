@@ -1,6 +1,6 @@
 {
   "name": "react-admin-rokket-providers",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Providers for the react admin rokket template",
   "main": "index.js",
   "author": "Eliot Arellano <eliot.arellano@rokketlabs.com>",
@@ -26,6 +26,11 @@
   },
   "dependencies": {
     "apollo-boost": "^0.4.7",
+    "apollo-cache-inmemory": "^1.6.5",
+    "apollo-client": "^2.6.8",
+    "apollo-link": "^1.2.13",
+    "apollo-link-error": "^1.1.12",
+    "apollo-upload-client": "^12.1.0",
     "graphql": "^14.6.0",
     "graphql-tag": "^2.10.1",
     "jwt-decode": "^2.2.0",
