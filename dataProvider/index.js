@@ -66,7 +66,7 @@ export default apiUrl => {
     create: async function(resource, params) {
       const action = 'create'
       const { client } = await buildClient(apiUrl)
-      const { queries, inputFields } = await parseSchema(
+      const { queries, inputFields, fields } = await parseSchema(
         client,
         resource,
         action,
@@ -84,10 +84,9 @@ export default apiUrl => {
       const data = `input: $input`
 
       if (params.data.image) params.data.image = params.data.image.url
-      if (resource === 'User') delete inputFields.password
       inputFields.id = null
 
-      const query = buildQuery(foundQuery.name, inputFields, data, mutation)
+      const query = buildQuery(foundQuery.name, fields, data, mutation)
 
       const response = await client.mutate({
         mutation: query,
