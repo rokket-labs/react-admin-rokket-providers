@@ -84,7 +84,6 @@ export default apiUrl => {
       const data = `input: $input`
 
       if (params.data.image) params.data.image = params.data.image.url
-      inputFields.id = null
 
       const query = buildQuery(foundQuery.name, fields, data, mutation)
 
