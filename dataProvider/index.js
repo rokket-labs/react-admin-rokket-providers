@@ -63,6 +63,29 @@ export default apiUrl => {
         data: [response.data[foundQuery.name]],
       }
     },
+    getManyReference: async function(resource, params) {
+      const { client } = await buildClient(apiUrl)
+      const { queries, fields } = await parseSchema(client, resource)
+
+      const foundQuery = find(propEq('name', resource))(queries)
+
+      const { id } = params
+      const data = `id: "${id}"`
+
+      const query = buildQuery(foundQuery.name, fields, data, '')
+
+      const response = await client.query({ query })
+
+      if (resource === 'Formula')
+        response.data[resource].image = {
+          url: response.data[resource].image,
+        }
+
+      return {
+        data: response.data[foundQuery.name],
+        total: response.data[foundQuery.name].length,
+      }
+    },
     create: async function(resource, params) {
       const action = 'create'
       const { client } = await buildClient(apiUrl)
