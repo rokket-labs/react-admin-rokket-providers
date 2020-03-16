@@ -153,6 +153,14 @@ export default apiUrl => {
             if (value && value.id) data = item[1].id
             else data = item[1]
 
+          if (name === 'location') {
+            const { coordinates } = value
+            data = {
+              latitude: parseFloat(coordinates[1]),
+              longitude: parseFloat(coordinates[0]),
+            }
+          }
+
           if (data && name === 'contentFormula')
             Object.values(data).forEach(cf => {
               if (cf.content && cf.content.id) cf.content = cf.content.id
@@ -164,7 +172,6 @@ export default apiUrl => {
         })
         return objInput
       })
-
       if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
