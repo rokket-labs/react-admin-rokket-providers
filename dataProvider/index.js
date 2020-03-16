@@ -153,6 +153,12 @@ export default apiUrl => {
             if (value && value.id) data = item[1].id
             else data = item[1]
 
+          if (name === 'location')
+            data = {
+              latitude: Object.values(value.coordinates)[0],
+              longitude: Object.values(value.coordinates)[1],
+            }
+
           if (data && name === 'contentFormula')
             Object.values(data).forEach(cf => {
               if (cf.content && cf.content.id) cf.content = cf.content.id
