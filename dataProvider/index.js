@@ -118,7 +118,6 @@ export default apiUrl => {
       }
     },
     update: async function(resource, params) {
-      console.log('params', params)
       const action = 'update'
       const { client } = await buildClient(apiUrl)
       const { queries, inputFields } = await parseSchema(
@@ -173,7 +172,6 @@ export default apiUrl => {
         })
         return objInput
       })
-      console.log('objInput', objInput)
       if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
