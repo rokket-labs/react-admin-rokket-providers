@@ -118,6 +118,7 @@ export default apiUrl => {
       }
     },
     update: async function(resource, params) {
+      console.log('params', params)
       const action = 'update'
       const { client } = await buildClient(apiUrl)
       const { queries, inputFields } = await parseSchema(
@@ -153,11 +154,13 @@ export default apiUrl => {
             if (value && value.id) data = item[1].id
             else data = item[1]
 
-          if (name === 'location')
+          if (name === 'location') {
+            const { coordinates } = value
             data = {
-              latitude: Object.values(value.coordinates)[0],
-              longitude: Object.values(value.coordinates)[1],
+              latitude: parseFloat(coordinates[1]),
+              longitude: parseFloat(coordinates[0]),
             }
+          }
 
           if (data && name === 'contentFormula')
             Object.values(data).forEach(cf => {
@@ -170,7 +173,7 @@ export default apiUrl => {
         })
         return objInput
       })
-
+      console.log('objInput', objInput)
       if (params.data.image) objInput.image = params.data.image.url
 
       const response = await client.mutate({
