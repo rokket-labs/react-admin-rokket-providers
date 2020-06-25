@@ -4,7 +4,7 @@
 
 _:rocket: Developed by [Rokket Labs](https://rokketlabs.com) :rocket:_
 
-The providers were builded to automatically generate the connection with your GraphQl API in just a couple of minutes.
+The providers have been built to automatically generate the connection with your GraphQl API in just a couple of minutes.
 
 ## Installation and Usage
 
