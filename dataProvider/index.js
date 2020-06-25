@@ -38,7 +38,7 @@ export default apiUrl => {
 
       const response = await client.query({ query })
 
-      if (resource === 'Formula')
+      if (response.data[resource].image)
         response.data[resource].image = {
           url: response.data[resource].image,
         }
@@ -76,7 +76,7 @@ export default apiUrl => {
 
       const response = await client.query({ query })
 
-      if (resource === 'Formula')
+      if (response.data[resource].image)
         response.data[resource].image = {
           url: response.data[resource].image,
         }
