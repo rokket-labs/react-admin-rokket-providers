@@ -1,13 +1,31 @@
 /* eslint-disable object-shorthand */
-import buildClient from '../dataProvider/client'
-import parseSchema from '../dataProvider/schema'
-import buildQuery from '../dataProvider/query'
+import buildClient from './client'
+import parseSchema from './schema'
+import buildQuery from './query'
 import { find, propEq } from 'ramda'
 import pluralize from 'pluralize'
 
+const slugify = value => {
+  value = value.replace(/^\s+|\s+$/g, '')
+  value = value.toLowerCase()
+
+  const from = 'àáäâèéëêìíïîòóöôùúüûñç·/_,:;'
+  const to = 'aaaaeeeeiiiioooouuuunc------'
+
+  for (let i = 0, l = from.length; i < l; i++)
+    value = value.replace(new RegExp(from.charAt(i), 'g'), to.charAt(i))
+
+  value = value
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+
+  return value
+}
+
 export default apiUrl => {
   return {
-    getList: async function(resource) {
+    getList: async function(resource, params) {
       const action = 'getList'
       const { client } = await buildClient(apiUrl)
       const { queries, fields } = await parseSchema(client, resource, action)
@@ -20,8 +38,45 @@ export default apiUrl => {
 
       const response = await client.query({ query })
 
+      if (!params.pagination || !params.filter)
+        return {
+          data: response.data[foundQuery.name],
+          total: response.data[foundQuery.name].length,
+        }
+
+      const { page, perPage } = params.pagination
+      const paginatedResponse = response.data[foundQuery.name].slice(
+        (page - 1) * perPage,
+        page * perPage,
+      )
+      
+      const { filter } = params.filter
+
+      if (filter) {
+        const filtered = response.data[foundQuery.name].filter(element => {
+          const filterKeys = Object.keys(element)
+
+          for (const i of filterKeys)
+            if (
+              element[i] &&
+              slugify(element[i].toString()).includes(
+                slugify(filter),
+              )
+            )
+              return element[i]
+        })
+        const fiteredPaginated = filtered.slice(
+          (page - 1) * perPage,
+          page * perPage,
+        )
+
+        return {
+          data: fiteredPaginated,
+          total: filtered.length,
+        }
+      }
       return {
-        data: response.data[foundQuery.name],
+        data: paginatedResponse,
         total: response.data[foundQuery.name].length,
       }
     },
